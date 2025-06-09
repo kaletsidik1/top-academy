@@ -91,9 +91,24 @@ body {
     background: var(--text);
     color: var(--bg);
     padding: 3rem 2rem;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
+    text-align: center;
+}
+
+.ft-content {
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.ft-section {
+    min-width: 200px;
+}
+
+.ft-section h3 {
+    margin-bottom: 1rem;
+    color: var(--secondary);
 }
 
 .ft a {
@@ -101,10 +116,27 @@ body {
     text-decoration: none;
     display: block;
     margin: 0.5rem 0;
+    transition: color 0.3s;
+}
+
+.ft a:hover {
+    color: var(--secondary);
 }
 
 .cp-right {
-    grid-column: 1/-1;
-    text-align: center;
-    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+@media (max-width: 768px) {
+    .ft-content {
+        flex-direction: column;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .ft-section {
+        width: 100%;
+        max-width: 300px;
+    }
 }
