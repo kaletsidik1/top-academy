@@ -1,0 +1,12 @@
+.srv-title {
+    text-align: center;
+    color: green ;
+    margin: 2rem 0;
+}
+
+.srv-grid {
+    display: grid;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 3000px;
+}
