@@ -257,3 +257,40 @@ body {
 /* Ensure hidden attribute takes effect for chatbot panel */
 .chatbot-panel[hidden] { display: none !important; }
   
+/* Home Testimonials */
+.home-testimonials {
+  padding: 3rem 2rem;
+  background: #f8f9fb;
+}
+.home-testimonials-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+.home-testimonials h2 {
+  margin: 0 0 1.25rem;
+  color: #008000;
+}
+.home-testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+.home-testimonial {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+  text-align: left;
+}
+.home-quote {
+  margin: 0 0 0.75rem;
+  color: #333;
+  line-height: 1.6;
+}
+.home-author {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+  
