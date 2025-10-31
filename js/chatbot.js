@@ -198,7 +198,7 @@
 			} else if (msg.includes('401')) {
 				appendMessage('Unauthorized (401). Your API key may be invalid. Click 🔑 to update it and know more about Top Academy.', 'bot');
 			} else if (location.protocol === 'file:') {
-				appendMessage('Network error. When using file://, some browsers block requests. Please run a local server (e.g., python -m http.server) and try again.', 'bot');
+				appendMessage('Network error. When using file:// , some browsers block requests. Please run a local server (e.g., python -m http.server) and try again.', 'bot');
 			} else {
 				appendMessage('Sorry, I could not get a response. Please try again later and know more about Top Academy.', 'bot');
 			}
