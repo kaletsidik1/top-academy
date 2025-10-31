@@ -34,6 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadComponent('header-placeholder', 'components/header.html');
     loadComponent('footer-placeholder', 'components/footer.html');
 
+    // Learn More button → services.html
+    const learnMoreBtn = document.querySelector('.btn-lm');
+    if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', () => {
+            window.location.href = 'services.html';
+        });
+    }
+
     // Optionally load config.js if present (for production API key injection)
     (async () => {
         try {
