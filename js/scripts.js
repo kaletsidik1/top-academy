@@ -1,34 +1,62 @@
 // Load header, footer, and chatbot components
 document.addEventListener('DOMContentLoaded', () => {
-    const loadComponent = async (id, path) => {
+    const tryFetchSequential = async (paths) => {
+        for (const p of paths) {
+            try {
+                const res = await fetch(p);
+                if (res.ok) return await res.text();
+            } catch (_) {}
+        }
+        throw new Error('All fetch attempts failed for: ' + paths.join(', '));
+    };
+
+    const baseCandidates = (relPath) => {
+        // Works on GitHub Pages (/top-academy/...), on localhost root, and via file://
+        const repoBase = '/top-academy/';
+        const pathNoSlash = relPath.replace(/^\/+/, '');
+        return [
+            repoBase + pathNoSlash,
+            '/' + pathNoSlash,
+            pathNoSlash
+        ];
+    };
+
+    const loadComponent = async (id, relPath) => {
         try {
-            const res = await fetch(path);
-            const html = await res.text();
+            const html = await tryFetchSequential(baseCandidates(relPath));
             const host = document.getElementById(id);
             if (host) host.innerHTML = html;
         } catch (err) {
-            console.error(`Error loading ${path}:`, err);
+            console.error(`Error loading ${relPath}:`, err);
         }
     };
 
-    loadComponent('header-placeholder', '/top-academy/components/header.html');
-    loadComponent('footer-placeholder', '/top-academy/components/footer.html');
+    loadComponent('header-placeholder', 'components/header.html');
+    loadComponent('footer-placeholder', 'components/footer.html');
 
     // Inject chatbot widget globally if not already present
     (async () => {
         try {
             if (!document.getElementById('chatbot-widget')) {
-                const res = await fetch('/top-academy/components/chatbot.html');
-                const html = await res.text();
+                const html = await tryFetchSequential(baseCandidates('components/chatbot.html'));
                 const container = document.createElement('div');
                 container.innerHTML = html;
                 document.body.appendChild(container.firstElementChild);
             }
             // Ensure chatbot script loaded once
-            const existing = Array.from(document.scripts).some(s => s.src.endsWith('/js/chatbot.js'));
+            const existing = Array.from(document.scripts).some(s => s.src.endsWith('/js/chatbot.js') || s.src.endsWith('js/chatbot.js'));
             if (!existing) {
+                const scriptSrc = await (async () => {
+                    for (const cand of baseCandidates('js/chatbot.js')) {
+                        try {
+                            const head = await fetch(cand, { method: 'HEAD' });
+                            if (head.ok) return cand;
+                        } catch (_) {}
+                    }
+                    return 'js/chatbot.js';
+                })();
                 const s = document.createElement('script');
-                s.src = '/top-academy/js/chatbot.js';
+                s.src = scriptSrc;
                 document.body.appendChild(s);
             }
         } catch (err) {
