@@ -34,6 +34,10 @@
 		localStorage.setItem('groq_api_key', key.trim());
 	}
 
+	function isReady() {
+		return !!document.getElementById(WIDGET_IDS.panel);
+	}
+
 	function init() {
 		const panel = document.getElementById(WIDGET_IDS.panel);
 		const toggle = document.getElementById(WIDGET_IDS.toggle);
@@ -92,6 +96,7 @@
 
 	function appendMessage(text, author) {
 		const messages = document.getElementById(WIDGET_IDS.messages);
+		if (!messages) return;
 		const item = document.createElement('div');
 		item.className = `chat-message ${author === 'user' ? 'user-message' : 'bot-message'}`;
 		item.textContent = text;
@@ -101,15 +106,16 @@
 
 	async function sendMessage() {
 		const input = document.getElementById(WIDGET_IDS.input);
-		const userMessage = (input.value || '').trim();
+		const userMessage = (input && input.value ? input.value : '').trim();
 		if (!userMessage) return;
 		appendMessage(userMessage, 'user');
-		input.value = '';
+		if (input) input.value = '';
 
+		const messagesEl = document.getElementById(WIDGET_IDS.messages);
 		const typing = document.createElement('div');
 		typing.className = 'chat-message bot-message typing';
 		typing.textContent = 'Typing…';
-		document.getElementById(WIDGET_IDS.messages).appendChild(typing);
+		if (messagesEl) messagesEl.appendChild(typing);
 		try {
 			const apiKey = getApiKey();
 			if (!apiKey) {
@@ -147,5 +153,26 @@
 		}
 	}
 
-	document.addEventListener('DOMContentLoaded', init);
+	function openPanel() {
+		const panel = document.getElementById(WIDGET_IDS.panel);
+		const toggle = document.getElementById(WIDGET_IDS.toggle);
+		if (panel && toggle && panel.hasAttribute('hidden')) {
+			toggle.click();
+		}
+	}
+
+	// Expose a tiny API for other scripts to open the assistant
+	window.TopAcademyAssistant = window.TopAcademyAssistant || {
+		open: () => {
+			if (!isReady()) return false;
+			openPanel();
+			return true;
+		}
+	};
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
 })();

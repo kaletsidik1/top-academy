@@ -16,12 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         faqSection.style.display = 'none';
         showFaqsButton.classList.remove('active');
         showAssistantButton.classList.add('active');
-        // Open the global chatbot widget
-        const panel = document.getElementById('chatbot-panel');
-        const toggle = document.getElementById('chatbot-toggle');
-        if (panel && toggle && panel.hasAttribute('hidden')) {
-            toggle.click();
-        }
+        openAssistantWidget();
     });
 });
 
@@ -46,4 +41,22 @@ function initFaqAccordion() {
             }
         });
     });
+}
+
+function openAssistantWidget(retries = 20) {
+    // Prefer the global API if available
+    if (window.TopAcademyAssistant && typeof window.TopAcademyAssistant.open === 'function') {
+        const opened = window.TopAcademyAssistant.open();
+        if (opened) return;
+    }
+    // Fallback: try clicking toggle when present
+    const panel = document.getElementById('chatbot-panel');
+    const toggle = document.getElementById('chatbot-toggle');
+    if (panel && toggle && panel.hasAttribute('hidden')) {
+        toggle.click();
+        return;
+    }
+    if (retries > 0) {
+        setTimeout(() => openAssistantWidget(retries - 1), 150);
+    }
 }
