@@ -148,6 +148,8 @@ body {
   font-size: 24px;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  position: relative;
+  z-index: 10001;
 }
 
 .chatbot-panel {
@@ -162,6 +164,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 10000;
 }
 
 .chatbot-header {
@@ -250,4 +253,7 @@ body {
 @media (max-width: 480px) {
   .chatbot-panel { width: 90vw; height: 60vh; }
 }
+  
+/* Ensure hidden attribute takes effect for chatbot panel */
+.chatbot-panel[hidden] { display: none !important; }
   

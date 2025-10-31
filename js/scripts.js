@@ -34,6 +34,25 @@ document.addEventListener('DOMContentLoaded', () => {
     loadComponent('header-placeholder', 'components/header.html');
     loadComponent('footer-placeholder', 'components/footer.html');
 
+    // Optionally load config.js if present (for production API key injection)
+    (async () => {
+        try {
+            for (const cand of baseCandidates('js/config.js')) {
+                try {
+                    const head = await fetch(cand, { method: 'HEAD' });
+                    if (head.ok) {
+                        const s = document.createElement('script');
+                        s.src = cand;
+                        document.head.appendChild(s);
+                        break;
+                    }
+                } catch (_) {}
+            }
+        } catch (err) {
+            console.warn('Optional config.js not loaded:', err);
+        }
+    })();
+
     // Inject chatbot widget globally if not already present
     (async () => {
         try {

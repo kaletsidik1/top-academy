@@ -27,11 +27,22 @@
 		"FAQ highlights: group sessions available; parents can track progress; both online and in‑person sessions supported.\n"
 	);
 
-	function getApiKey() {
-		return localStorage.getItem('groq_api_key') || '';
+	function readMeta(name) {
+		const el = document.querySelector(`meta[name="${name}"]`);
+		return el ? (el.getAttribute('content') || '').trim() : '';
+	}
+
+	function resolveApiKey() {
+		const ls = localStorage.getItem('groq_api_key');
+		if (ls && ls.trim()) return ls.trim();
+		const globalKey = (window.__GROQ_API_KEY__ || '').trim ? window.__GROQ_API_KEY__ : '';
+		if (globalKey) return globalKey;
+		const metaKey = readMeta('groq-api-key');
+		if (metaKey) return metaKey;
+		return '';
 	}
 	function setApiKey(key) {
-		localStorage.setItem('groq_api_key', key.trim());
+		localStorage.setItem('groq_api_key', (key || '').trim());
 	}
 
 	function isReady() {
@@ -39,6 +50,7 @@
 	}
 
 	function init() {
+		const widget = document.getElementById(WIDGET_IDS.widget);
 		const panel = document.getElementById(WIDGET_IDS.panel);
 		const toggle = document.getElementById(WIDGET_IDS.toggle);
 		const close = document.getElementById(WIDGET_IDS.close);
@@ -46,30 +58,47 @@
 		const send = document.getElementById(WIDGET_IDS.send);
 		const input = document.getElementById(WIDGET_IDS.input);
 
-		if (!panel || !toggle || !send || !input) return;
+		if (!panel || !toggle || !send || !input || !widget) return;
+		if (widget.dataset.initialized === '1') return;
 
-		// Open/close
-		toggle.addEventListener('click', () => {
-			const isHidden = panel.hasAttribute('hidden');
-			if (isHidden) {
+		function openPanel() {
+			if (panel.hasAttribute('hidden')) {
 				panel.removeAttribute('hidden');
+				panel.setAttribute('aria-hidden', 'false');
 				toggle.setAttribute('aria-expanded', 'true');
 				input.focus();
 				ensureWelcome();
-			} else {
+			}
+		}
+		function closePanel() {
+			if (!panel.hasAttribute('hidden')) {
 				panel.setAttribute('hidden', '');
+				panel.setAttribute('aria-hidden', 'true');
 				toggle.setAttribute('aria-expanded', 'false');
 			}
-		});
-		if (close) {
-			close.addEventListener('click', () => {
-				panel.setAttribute('hidden', '');
-				toggle.setAttribute('aria-expanded', 'false');
-			});
 		}
+
+		// Toggle by bubble
+		toggle.addEventListener('click', () => {
+			if (panel.hasAttribute('hidden')) openPanel(); else closePanel();
+		});
+		// Close by ✕
+		if (close) close.addEventListener('click', (e) => { e.stopPropagation(); closePanel(); });
+		// Close on outside click
+		document.addEventListener('click', (e) => {
+			const target = e.target;
+			if (!widget.contains(target) && !panel.hasAttribute('hidden')) {
+				closePanel();
+			}
+		});
+		// Close on Escape
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape') closePanel();
+		});
+		// Key management
 		if (keyBtn) {
 			keyBtn.addEventListener('click', () => {
-				const current = getApiKey();
+				const current = resolveApiKey();
 				const next = window.prompt('Enter your Groq API Key (stored locally):', current || '');
 				if (next) setApiKey(next);
 			});
@@ -81,6 +110,13 @@
 		});
 
 		ensureWelcome();
+
+		// Public API
+		window.TopAcademyAssistant = window.TopAcademyAssistant || {
+			open: () => { openPanel(); return true; }
+		};
+
+		widget.dataset.initialized = '1';
 	}
 
 	function ensureWelcome() {
@@ -117,7 +153,7 @@
 		typing.textContent = 'Typing…';
 		if (messagesEl) messagesEl.appendChild(typing);
 		try {
-			const apiKey = getApiKey();
+			const apiKey = resolveApiKey();
 			if (!apiKey) {
 				throw new Error('Missing API key');
 			}
@@ -125,7 +161,8 @@
 				method: 'POST',
 				headers: {
 					'Authorization': `Bearer ${apiKey}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'Accept': 'application/json'
 				},
 				body: JSON.stringify({
 					model: 'llama3-8b-8192',
@@ -136,7 +173,17 @@
 					]
 				})
 			});
-			const data = await res.json();
+			let data;
+			if (!res.ok) {
+				// Try to parse error JSON
+				try { data = await res.json(); } catch (_) { data = null; }
+				const apiErr = data && (data.error?.message || data.error) ? ` - ${data.error?.message || data.error}` : '';
+				throw new Error(`HTTP ${res.status} ${res.statusText}${apiErr}`);
+			}
+			data = await res.json();
+			if (data && data.error) {
+				throw new Error(`Groq error: ${data.error.message || data.error}`);
+			}
 			const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
 				? data.choices[0].message.content
 				: 'Sorry, I could not get a response.';
@@ -145,34 +192,37 @@
 		} catch (err) {
 			console.error(err);
 			typing.remove();
-			if (String(err && err.message).includes('Missing API key')) {
-				appendMessage('Set your Groq API key by clicking the key icon (🔑).', 'bot');
+			const msg = String(err && err.message || err);
+			if (msg.includes('Missing API key')) {
+				appendMessage('No API key found. Click the key icon (🔑), or define one in js/config.js as window.__GROQ_API_KEY__ = "..." or a <meta name="groq-api-key" content="..."> tag.', 'bot');
+			} else if (msg.includes('401')) {
+				appendMessage('Unauthorized (401). Your API key may be invalid. Click 🔑 to update it.', 'bot');
+			} else if (location.protocol === 'file:') {
+				appendMessage('Network error. When using file://, some browsers block requests. Please run a local server (e.g., python -m http.server) and try again.', 'bot');
 			} else {
 				appendMessage('Sorry, I could not get a response. Please try again later.', 'bot');
 			}
 		}
 	}
 
-	function openPanel() {
-		const panel = document.getElementById(WIDGET_IDS.panel);
-		const toggle = document.getElementById(WIDGET_IDS.toggle);
-		if (panel && toggle && panel.hasAttribute('hidden')) {
-			toggle.click();
+	// Ensure we initialize when the widget is injected later
+	function bindWhenReady() {
+		if (document.getElementById(WIDGET_IDS.widget)) {
+			init();
+			return;
 		}
+		const mo = new MutationObserver(() => {
+			const w = document.getElementById(WIDGET_IDS.widget);
+			if (w && w.dataset.initialized !== '1') {
+				init();
+			}
+		});
+		mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
 	}
 
-	// Expose a tiny API for other scripts to open the assistant
-	window.TopAcademyAssistant = window.TopAcademyAssistant || {
-		open: () => {
-			if (!isReady()) return false;
-			openPanel();
-			return true;
-		}
-	};
-
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', init);
+		document.addEventListener('DOMContentLoaded', bindWhenReady);
 	} else {
-		init();
+		bindWhenReady();
 	}
 })();
